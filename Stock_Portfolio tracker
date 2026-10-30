@@ -1,0 +1,115 @@
+"""
+Simple Stock Portfolio Tracker
+------------------------------
+Concepts practiced: dictionaries, input/output, basic arithmetic,
+error handling, and file handling (CSV).
+"""
+
+import csv
+
+# 1. Hardcoded "database" of stock prices: {ticker symbol: price per share}
+STOCK_PRICES = {
+    "AAPL": 180,
+    "TSLA": 250,
+    "GOOGL": 140,
+    "MSFT": 330,
+    "AMZN": 125,
+}
+
+
+def get_portfolio():
+    """Ask the user for stocks and quantities. Returns a dictionary
+    like {"AAPL": 10, "TSLA": 5}."""
+    portfolio = {}  # symbol -> quantity owned
+
+    print("Available stocks:", ", ".join(STOCK_PRICES))
+    print("Type 'done' as the symbol when you are finished.\n")
+
+    while True:
+        # .strip() removes spaces, .upper() makes "aapl" match "AAPL"
+        symbol = input("Enter stock symbol: ").strip().upper()
+
+        if symbol == "DONE":
+            break
+
+        # Check the symbol exists in our price dictionary
+        if symbol not in STOCK_PRICES:
+            print(f"  '{symbol}' is not a known stock. Try again.")
+            continue  # skip back to the start of the loop
+
+        quantity_text = input(f"How many shares of {symbol} do you own? ")
+
+        # try/except catches text like "abc" or "2.5" that can't become an int
+        try:
+            quantity = int(quantity_text)
+        except ValueError:
+            print("  Invalid quantity. Please enter a whole number.")
+            continue
+
+        if quantity <= 0:
+            print("  Quantity must be greater than zero.")
+            continue
+
+        # If the stock was entered before, add to the existing amount
+        portfolio[symbol] = portfolio.get(symbol, 0) + quantity
+
+    return portfolio
+
+
+def calculate_values(portfolio):
+    """Return a list of (symbol, quantity, price, value) rows and the total."""
+    rows = []
+    total = 0
+
+    for symbol, quantity in portfolio.items():
+        price = STOCK_PRICES[symbol]
+        value = price * quantity  # value of this holding
+        rows.append((symbol, quantity, price, value))
+        total += value  # running total of the whole portfolio
+
+    return rows, total
+
+
+def display_summary(rows, total):
+    """Print a neat table of the portfolio."""
+    print("\n--- Portfolio Summary ---")
+    print(f"{'Symbol':<8}{'Qty':>6}{'Price':>10}{'Value':>12}")
+    for symbol, quantity, price, value in rows:
+        print(f"{symbol:<8}{quantity:>6}{price:>10.2f}{value:>12.2f}")
+    print("-" * 36)
+    print(f"{'Total investment value:':<24}{total:>12.2f}")
+
+
+def save_to_csv(rows, total, filename="portfolio_summary.csv"):
+    """Write the summary to a CSV file (opens in Excel)."""
+    # newline="" prevents blank lines between rows on Windows
+    with open(filename, "w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["Symbol", "Quantity", "Price", "Value"])  # header
+        writer.writerows(rows)  # one line per holding
+        writer.writerow(["TOTAL", "", "", total])
+    print(f"Summary saved to {filename}")
+
+
+def main():
+    portfolio = get_portfolio()
+
+    if not portfolio:
+        print("No holdings entered. Goodbye!")
+        return
+
+    rows, total = calculate_values(portfolio)
+    display_summary(rows, total)
+
+    # Optional feature: save to CSV
+    choice = input("\nSave summary to a CSV file? (y/n): ").strip().lower()
+    if choice == "y":
+        try:
+            save_to_csv(rows, total)
+        except OSError:
+            print("Could not save the file. Check permissions and try again.")
+
+
+# Runs main() only when this file is executed directly
+if __name__ == "__main__":
+    main()
